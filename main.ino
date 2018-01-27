@@ -4,16 +4,24 @@ light sensor - A0
 dht11 - D0
 */
 int dht = D0;
-int rh = 0;
+int relativeHumidity = 0;
 int temp = 0;
+
+// Servo motor configuration
+int servoPos = 90;
+Servo myServo;
 
 void setup() {
   pinMode(D1, OUTPUT);
   pinMode(A0, INPUT);
-  Spark.variable("rh", &rh, INT);
+  Spark.variable("rh", &relativeHumidity, INT);
   Spark.variable("temp", &temp, INT);
   Spark.variable("lightLevel", &lightLevel, INT);
+  Spark.variable("servoPos", &servoPos, INT);
   pinMode(dht, INPUT_PULLUP);
+  // Setup servo motor
+  myServo.attach(A5);
+  myServo.write(servoPos);
 }
 
 void loop() {
@@ -26,9 +34,25 @@ void loop() {
     digitalWrite(D1, LOW);
   }
   // Handle temp and humidity
-  read_dht(dht, &rh, &temp);
+  read_dht(dht, &relativeHumidity, &temp);
+  // Handle servo
+  handle_servo();
   // Pause for calibration
   delay(200);
+}
+
+// Control functions
+void handle_servo() {
+  int temp = servoPos;
+  servoPos = (lightLevel / (10)) % 140;
+  int diff = servoPos - temp;
+  // Smooth movements
+  if (diff > 20) {
+    servoPos = temp + 20;
+  } else if (diff < - 20) {
+    servoPos = temp - 20;
+  }
+  myServo.write(servoPos);
 }
 
 // DHT11 Humidity and Temperature sensor reading
