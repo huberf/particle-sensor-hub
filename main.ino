@@ -2,16 +2,23 @@ int lightLevel = 0;
 /* Pin allocation
 light sensor - A0
 dht11 - D0
+powerPin - D6
 */
 int dht = D0;
 int relativeHumidity = 0;
 int temp = 0;
+
+// Count raw loops
+int ticker = 0;
 
 // Servo motor configuration
 int servoPos = 90;
 Servo myServo;
 
 void setup() {
+  // Setup power pin for sustained delivery
+  pinMode(D6, OUTPUT);
+  digitalWrite(D6, HIGH);
   pinMode(D1, OUTPUT);
   pinMode(A0, INPUT);
   Spark.variable("rh", &relativeHumidity, INT);
@@ -25,6 +32,7 @@ void setup() {
 }
 
 void loop() {
+  ticker += 1;
   // Handle light
   lightLevel = analogRead(A0);
   int threshold = 200;
@@ -37,20 +45,32 @@ void loop() {
   read_dht(dht, &relativeHumidity, &temp);
   // Handle servo
   handle_servo();
+  // Sustain power to power pin
+  digitalWrite(D6, HIGH);
   // Pause for calibration
   delay(200);
 }
 
 // Control functions
 void handle_servo() {
-  int temp = servoPos;
-  servoPos = (lightLevel / (10)) % 140;
-  int diff = servoPos - temp;
-  // Smooth movements
-  if (diff > 20) {
-    servoPos = temp + 20;
-  } else if (diff < - 20) {
-    servoPos = temp - 20;
+  int choice = 1;
+  if (choice == 0) { 
+    // Light level to position program
+    int temp = servoPos;
+    servoPos = (lightLevel / (10)) % 140;
+    int diff = servoPos - temp;
+    // Smooth movements
+    if (diff > 20) {
+      servoPos = temp + 20;
+    } else if (diff < - 20) {
+      servoPos = temp - 20;
+    }
+  } else if (choice == 1) {
+    // Time tick program
+    int steps = 10;
+    int rawPosition = ticker / steps;
+    // Curve and cap range from 10 to 150 degrees
+    servoPos = rawPosition % 140 + 10;
   }
   myServo.write(servoPos);
 }
