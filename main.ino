@@ -3,10 +3,15 @@ int lightLevel = 0;
 light sensor - A0
 dht11 - D0
 powerPin - D6
+speakerPin - D4
 */
 int dht = D0;
+int speakerPin = D4;
 int relativeHumidity = 0;
 int temp = 0;
+
+// Threshold variables to be handled and tweaked remotely
+int lightThreshold = 200;
 
 // Count raw loops
 int ticker = 0;
@@ -21,10 +26,13 @@ void setup() {
   digitalWrite(D6, HIGH);
   pinMode(D1, OUTPUT);
   pinMode(A0, INPUT);
+  pinMode(speakerPin, OUTPUT);
   Spark.variable("rh", &relativeHumidity, INT);
   Spark.variable("temp", &temp, INT);
   Spark.variable("lightLevel", &lightLevel, INT);
   Spark.variable("servoPos", &servoPos, INT);
+  // Sync thresholds
+  Spark.variable("lightThreshold", &lightThreshold, INT);
   pinMode(dht, INPUT_PULLUP);
   // Setup servo motor
   myServo.attach(A5);
@@ -35,8 +43,7 @@ void loop() {
   ticker += 1;
   // Handle light
   lightLevel = analogRead(A0);
-  int threshold = 200;
-  if (lightLevel < threshold) {
+  if (lightLevel < lightThreshold) {
     digitalWrite(D1, HIGH);
   } else {
     digitalWrite(D1, LOW);
@@ -129,4 +136,42 @@ int detect_edge(int pin, int val, int interval, int timeout)
         return -1;
     }
     return counter;
+}
+
+/* Piezo Sound Handling (inspired and using code from the Sparkfun project at https://learn.sparkfun.com/tutorials/sparkfun-inventors-kit-for-photon-experiment-guide/experiment-5-music-time */
+void makeSound(duration, char note) {
+  tone(speakerPin, frequency(note), duration);
+}
+
+int frequency(char note)
+{
+  // This function takes a note character (a-g), and returns the
+  // corresponding frequency in Hz for the tone() function.
+
+  int i;
+  const int numNotes = 8;  // number of notes we're storing
+
+  // The following arrays hold the note characters and their
+  // corresponding frequencies. The last "C" note is uppercase
+  // to separate it from the first lowercase "c". If you want to
+  // add more notes, you'll need to use unique characters.
+
+  // For the "char" (character) type, we put single characters
+  // in single quotes.
+
+  char names[] = { 'c', 'd', 'e', 'f', 'g', 'a', 'b', 'C' };
+  int frequencies[] = {262, 294, 330, 349, 392, 440, 494, 523};
+
+  // Now we'll search through the letters in the array, and if
+  // we find it, we'll return the frequency for that note.
+
+  for (i = 0; i < numNotes; i++)  // Step through the notes
+  {
+    if (names[i] == note)         // Is this the one?
+    {
+      return(frequencies[i]);     // Yes! Return the frequency
+    }
+  }
+  return(0);  // We looked through everything and didn't find it,
+              // but we still need to return a value, so return 0.
 }
